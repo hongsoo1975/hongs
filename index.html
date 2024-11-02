@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streaming Scoreboard Display</title>
+    <!-- 외부 라이브러리 로드 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <style>
+        /* 구글 폰트 Noto Sans KR 로드 */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+        
+        /* 기본 body 스타일 설정 - OBS에서 투명 배경을 위해 필요 */
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent !important; /* 배경 투명화 */
+            overflow: hidden; /* 스크롤바 제거 */
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        /* 드래그를 위한 상단 핸들 스타일 */
+        .drag-handle {
+            position: absolute;
+            top: -20px;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            cursor: move;
+            opacity: 0; /* 기본적으로 숨김 */
+            transition: opacity 0.2s;
+        }
+
+        /* 스코어보드에 마우스 오버시 드래그 핸들 표시 */
+        .scoreboard-container:hover .drag-handle {
+            opacity: 1;
+        }
+
+        /* 팀 이름이 표시되는 셀 스타일 */
+        .team-name {
+            transition: all 0.2s ease-in-out;
+            background: rgb(30, 64, 175); /* 중간 톤의 파랑 */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 점수가 표시되는 셀 스타일 */
+        .score-cell {
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* 텍스트 가독성 향상 */
+            transition: all 0.2s ease-in-out;
+            background: rgb(37, 99, 235); /* 밝은 파랑 */
+        }
+
+        /* 현재 진행 중인 세트의 점수 셀 스타일 */
+        .score-cell.current {
+            background: rgb(59, 130, 246); /* 더 밝은 파랑으로 강조 */
+        }
+
+        /* 스코어보드 테이블 기본 스타일 */
+        .scoreboard-table {
+            border-collapse: collapse; /* 셀 간격 제거 */
+            background: rgb(30, 58, 138); /* 진한 파랑 배경 */
+        }
+
+        /* 전체 스코어보드 발광 효과를 위한 컨테이너 */
+        .glow-effect {
+            position: relative;
+        }
+
+        /* 발광 효과 스타일 */
+        .glow-effect::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* 각 셀의 그림자 효과 */
+        .cell-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 테이블 셀 테두리 스타일 */
+        td {
+            border: 1px solid rgb(30, 58, 138);
+        }
+    </style>
+</head>
+<body>
+    <!-- React 앱이 마운트될 루트 요소 -->
+    <div id="root"></div>
+    <script type="text/javascript">
+        const Scoreboard = () => {
+            // 스코어보드의 상태 관리
+            // state 객체는 다음 정보를 포함:
+            // - setCount: 총 세트 수
+            // - scores: 각 팀의 세트별 점수
+            // - teamNames: 각 팀의 이름
+            // - currentSet: 현재 진행 중인 세트
+            // - position: 스코어보드의 화면상 위치
+            const [state, setState] = React.useState({
+                setCount: 1,          // 기본 세트 수
+                scores: {             // 각 팀의 점수 배열
+                    team1: [0, 0, 0], // 최대 3세트까지 표시 가능
+                    team2: [0, 0, 0]
+                },
+                teamNames: {          // 팀 이름 (수정 가능)
+                    team1: '팀 1',
+                    team2: '팀 2'
+                },
+                currentSet: 0,        // 현재 진행 중인 세트 (0부터 시작)
+                position: { x: 50, y: 50 }  // 초기 위치
+            });
+
+            // 드래그 관련 상태 관리
+            const [isDragging, setIsDragging] = React.useState(false);
+            const [dragStart, setDragStart] = React.useState({ x: 0, y: 0 });
+
+            // 마우스 드래그 시작 시 호출되는 핸들러
+            const handleMouseDown = (e) => {
+                setIsDragging(true);
+                setDragStart({
+                    x: e.clientX - state.position.x,
+                    y: e.clientY - state.position.y
+                });
+            };
+
+            // 마우스 드래그 중 호출되는 핸들러
+            // useCallback을 사용하여 불필요한 재생성 방지
+            const handleMouseMove = React.useCallback((e) => {
+                if (isDragging) {
+                    setState(prev => ({
+                        ...prev,
+                        position: {
+                            x: e.clientX - dragStart.x,
+                            y: e.clientY - dragStart.y
+                        }
+                    }));
+                }
+            }, [isDragging, dragStart]);
+
+            // 마우스 드래그 종료 시 호출되는 핸들러
+            const handleMouseUp = () => {
+                setIsDragging(false);
+            };
+
+            // 마우스 이벤트 리스너 설정 및 정리
+            React.useEffect(() => {
+                window.addEventListener('mousemove', handleMouseMove);
+                window.addEventListener('mouseup', handleMouseUp);
+                return () => {
+                    window.removeEventListener('mousemove', handleMouseMove);
+                    window.removeEventListener('mouseup', handleMouseUp);
+                };
+            }, [handleMouseMove]);
+
+            // localStorage를 통한 데이터 동기화
+            React.useEffect(() => {
+                // localStorage에서 상태를 로드하는 함수
+                const loadState = () => {
+                    const savedState = localStorage.getItem('scoreboard-state');
+                    if (savedState) {
+                        const newState = JSON.parse(savedState);
+                        setState(prev => ({
+                            ...newState,
+                            position: prev.position // 위치 정보는 유지
+                        }));
+                    }
+                };
+
+                loadState(); // 초기 데이터 로드
+                const refreshInterval = setInterval(loadState, 5000); // 5초마다 자동 갱신
+                
+                // 컴포넌트 언마운트 시 인터벌 정리
+                return () => clearInterval(refreshInterval);
+            }, []);
+
+            // 스코어보드 렌더링
+            return React.createElement('div', {
+                className: 'scoreboard-container',
+                style: {
+                    position: 'absolute',
+                    left: `${state.position.x}px`,
+                    top: `${state.position.y}px`,
+                }
+            }, [
+                // 드래그 핸들 엘리먼트
+                React.createElement('div', {
+                    className: 'drag-handle',
+                    onMouseDown: handleMouseDown,
+                    key: 'drag-handle'
+                }),
+                // 스코어보드 메인 컨테이너
+                React.createElement('div', {
+                    className: 'glow-effect',
+                    key: 'scoreboard'
+                }, [
+                    // 스코어보드 테이블
+                    React.createElement('table', {
+                        className: 'scoreboard-table',
+                        key: 'table'
+                    }, 
+                        React.createElement('tbody', {}, [
+                            // team1과 team2의 행을 생성
+                            ...['team1', 'team2'].map((team) =>
+                                React.createElement('tr', {
+                                    key: team,
+                                    className: 'h-16' // 행 높이 설정
+                                }, [
+                                    // 팀 이름 셀
+                                    React.createElement('td', {
+                                        className: 'team-name relative font-medium text-lg text-white px-6 w-48 cell-shadow'
+                                    }, 
+                                        state.teamNames[team]
+                                    ),
+                                    // 각 세트의 점수 셀
+                                    ...Array.from({ length: state.setCount }).map((_, i) =>
+                                        React.createElement('td', {
+                                            key: `score-${i}`,
+                                            className: `score-cell relative font-bold text-2xl text-white w-16 text-center cell-shadow ${i === state.currentSet ? 'current' : ''}`
+                                        }, state.scores[team][i])
+                                    )
+                                ])
+                            )
+                        ])
+                    )
+                ])
+            ]);
+        };
+
+        // React 앱을 루트 요소에 렌더링
+        ReactDOM.render(
+            React.createElement(Scoreboard),
+            document.getElementById('root')
+        );
+    </script>
+</body>
+</html>
