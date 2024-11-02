@@ -3,25 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streaming Scoreboard Display</title>
-    <!-- 외부 라이브러리 로드 -->
+    <title>Streaming Scoreboard Overlay</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
     <style>
-        /* 구글 폰트 Noto Sans KR 로드 */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
         
-        /* 기본 body 스타일 설정 - OBS에서 투명 배경을 위해 필요 */
         body {
             margin: 0;
             padding: 0;
-            background: transparent !important; /* 배경 투명화 */
-            overflow: hidden; /* 스크롤바 제거 */
+            background: transparent;
+            overflow: hidden;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        
+        input {
             font-family: 'Noto Sans KR', sans-serif;
         }
 
-        /* 드래그를 위한 상단 핸들 스타일 */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px rgba(17, 24, 39, 0.95) inset !important;
+            -webkit-text-fill-color: white !important;
+        }
+
         .drag-handle {
             position: absolute;
             top: -20px;
@@ -30,100 +38,61 @@
             height: 20px;
             background: rgba(0, 0, 0, 0.5);
             cursor: move;
-            opacity: 0; /* 기본적으로 숨김 */
+            opacity: 0;
             transition: opacity 0.2s;
         }
 
-        /* 스코어보드에 마우스 오버시 드래그 핸들 표시 */
         .scoreboard-container:hover .drag-handle {
             opacity: 1;
         }
 
-        /* 팀 이름이 표시되는 셀 스타일 */
         .team-name {
             transition: all 0.2s ease-in-out;
-            background: rgb(30, 64, 175); /* 중간 톤의 파랑 */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        /* 점수가 표시되는 셀 스타일 */
+        .team-name:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
         .score-cell {
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* 텍스트 가독성 향상 */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
             transition: all 0.2s ease-in-out;
-            background: rgb(37, 99, 235); /* 밝은 파랑 */
         }
 
-        /* 현재 진행 중인 세트의 점수 셀 스타일 */
         .score-cell.current {
-            background: rgb(59, 130, 246); /* 더 밝은 파랑으로 강조 */
-        }
-
-        /* 스코어보드 테이블 기본 스타일 */
-        .scoreboard-table {
-            border-collapse: collapse; /* 셀 간격 제거 */
-            background: rgb(30, 58, 138); /* 진한 파랑 배경 */
-        }
-
-        /* 전체 스코어보드 발광 효과를 위한 컨테이너 */
-        .glow-effect {
-            position: relative;
-        }
-
-        /* 발광 효과 스타일 */
-        .glow-effect::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
-            opacity: 0.5;
-            pointer-events: none;
-        }
-
-        /* 각 셀의 그림자 효과 */
-        .cell-shadow {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* 테이블 셀 테두리 스타일 */
-        td {
-            border: 1px solid rgb(30, 58, 138);
+            background-color: rgba(59, 130, 246, 0.2);
         }
     </style>
 </head>
 <body>
-    <!-- React 앱이 마운트될 루트 요소 -->
     <div id="root"></div>
     <script type="text/javascript">
         const Scoreboard = () => {
-            // 스코어보드의 상태 관리
-            // state 객체는 다음 정보를 포함:
-            // - setCount: 총 세트 수
-            // - scores: 각 팀의 세트별 점수
-            // - teamNames: 각 팀의 이름
-            // - currentSet: 현재 진행 중인 세트
-            // - position: 스코어보드의 화면상 위치
             const [state, setState] = React.useState({
-                setCount: 1,          // 기본 세트 수
-                scores: {             // 각 팀의 점수 배열
-                    team1: [0, 0, 0], // 최대 3세트까지 표시 가능
+                setCount: 1,
+                scores: {
+                    team1: [0, 0, 0],
                     team2: [0, 0, 0]
                 },
-                teamNames: {          // 팀 이름 (수정 가능)
+                teamNames: {
                     team1: '팀 1',
                     team2: '팀 2'
                 },
-                currentSet: 0,        // 현재 진행 중인 세트 (0부터 시작)
-                position: { x: 50, y: 50 }  // 초기 위치
+                editingTeam: null,
+                currentSet: 0,
+                position: { x: 50, y: 50 }
             });
 
-            // 드래그 관련 상태 관리
             const [isDragging, setIsDragging] = React.useState(false);
             const [dragStart, setDragStart] = React.useState({ x: 0, y: 0 });
+            const inputRef = React.useRef(null);
 
-            // 마우스 드래그 시작 시 호출되는 핸들러
+            React.useEffect(() => {
+                if (inputRef.current) {
+                    inputRef.current.focus();
+                }
+            }, [state.editingTeam]);
+
             const handleMouseDown = (e) => {
                 setIsDragging(true);
                 setDragStart({
@@ -132,8 +101,6 @@
                 });
             };
 
-            // 마우스 드래그 중 호출되는 핸들러
-            // useCallback을 사용하여 불필요한 재생성 방지
             const handleMouseMove = React.useCallback((e) => {
                 if (isDragging) {
                     setState(prev => ({
@@ -146,12 +113,10 @@
                 }
             }, [isDragging, dragStart]);
 
-            // 마우스 드래그 종료 시 호출되는 핸들러
             const handleMouseUp = () => {
                 setIsDragging(false);
             };
 
-            // 마우스 이벤트 리스너 설정 및 정리
             React.useEffect(() => {
                 window.addEventListener('mousemove', handleMouseMove);
                 window.addEventListener('mouseup', handleMouseUp);
@@ -161,28 +126,63 @@
                 };
             }, [handleMouseMove]);
 
-            // localStorage를 통한 데이터 동기화
             React.useEffect(() => {
-                // localStorage에서 상태를 로드하는 함수
-                const loadState = () => {
-                    const savedState = localStorage.getItem('scoreboard-state');
-                    if (savedState) {
-                        const newState = JSON.parse(savedState);
-                        setState(prev => ({
-                            ...newState,
-                            position: prev.position // 위치 정보는 유지
-                        }));
-                    }
-                };
-
-                loadState(); // 초기 데이터 로드
-                const refreshInterval = setInterval(loadState, 5000); // 5초마다 자동 갱신
-                
-                // 컴포넌트 언마운트 시 인터벌 정리
-                return () => clearInterval(refreshInterval);
+                const savedState = localStorage.getItem('scoreboard-state');
+                if (savedState) {
+                    setState(JSON.parse(savedState));
+                }
             }, []);
 
-            // 스코어보드 렌더링
+            React.useEffect(() => {
+                localStorage.setItem('scoreboard-state', JSON.stringify(state));
+            }, [state]);
+
+            const handleScore = (team, setIndex, increment) => {
+                setState(prev => {
+                    const newScores = { ...prev.scores };
+                    newScores[team] = [...prev.scores[team]];
+                    newScores[team][setIndex] = Math.max(0, newScores[team][setIndex] + (increment ? 1 : -1));
+                    return { ...prev, scores: newScores };
+                });
+            };
+
+            const handleTeamNameChange = (team, newName) => {
+                setState(prev => ({
+                    ...prev,
+                    teamNames: {
+                        ...prev.teamNames,
+                        [team]: newName || `팀 ${team.slice(-1)}`
+                    },
+                    editingTeam: null
+                }));
+            };
+
+            const handleKeyDown = (e, team) => {
+                if (e.key === 'Enter') {
+                    handleTeamNameChange(team, e.target.value);
+                }
+            };
+
+            const addSet = () => {
+                if (state.setCount < 3) {
+                    setState(prev => ({
+                        ...prev,
+                        setCount: prev.setCount + 1,
+                        currentSet: prev.setCount
+                    }));
+                }
+            };
+
+            const removeSet = () => {
+                if (state.setCount > 1) {
+                    setState(prev => ({
+                        ...prev,
+                        setCount: prev.setCount - 1,
+                        currentSet: prev.setCount - 2
+                    }));
+                }
+            };
+
             return React.createElement('div', {
                 className: 'scoreboard-container',
                 style: {
@@ -191,51 +191,114 @@
                     top: `${state.position.y}px`,
                 }
             }, [
-                // 드래그 핸들 엘리먼트
                 React.createElement('div', {
                     className: 'drag-handle',
                     onMouseDown: handleMouseDown,
                     key: 'drag-handle'
                 }),
-                // 스코어보드 메인 컨테이너
                 React.createElement('div', {
-                    className: 'glow-effect',
+                    className: 'inline-block bg-gray-900 bg-opacity-95 rounded-lg p-[2px] shadow-2xl',
                     key: 'scoreboard'
                 }, [
-                    // 스코어보드 테이블
-                    React.createElement('table', {
-                        className: 'scoreboard-table',
-                        key: 'table'
-                    }, 
-                        React.createElement('tbody', {}, [
-                            // team1과 team2의 행을 생성
-                            ...['team1', 'team2'].map((team) =>
-                                React.createElement('tr', {
-                                    key: team,
-                                    className: 'h-16' // 행 높이 설정
-                                }, [
-                                    // 팀 이름 셀
-                                    React.createElement('td', {
-                                        className: 'team-name relative font-medium text-lg text-white px-6 w-48 cell-shadow'
-                                    }, 
-                                        state.teamNames[team]
-                                    ),
-                                    // 각 세트의 점수 셀
-                                    ...Array.from({ length: state.setCount }).map((_, i) =>
+                    React.createElement('div', {
+                        className: 'relative flex items-center rounded-lg overflow-hidden bg-gray-900 bg-opacity-95 border border-gray-700',
+                        key: 'scoreboard-inner'
+                    }, [
+                        React.createElement('table', {
+                            className: 'border-collapse',
+                            key: 'table'
+                        }, 
+                            React.createElement('tbody', {}, [
+                                ...['team1', 'team2'].map((team) =>
+                                    React.createElement('tr', {
+                                        key: team,
+                                        className: 'h-16'
+                                    }, [
                                         React.createElement('td', {
-                                            key: `score-${i}`,
-                                            className: `score-cell relative font-bold text-2xl text-white w-16 text-center cell-shadow ${i === state.currentSet ? 'current' : ''}`
-                                        }, state.scores[team][i])
+                                            className: 'team-name relative bg-opacity-5 font-medium text-lg text-white px-6 w-48 cursor-pointer rounded-l',
+                                            onClick: () => setState(prev => ({ ...prev, editingTeam: team }))
+                                        }, 
+                                            state.editingTeam === team
+                                                ? React.createElement('input', {
+                                                    ref: inputRef,
+                                                    type: 'text',
+                                                    value: state.teamNames[team],
+                                                    onChange: (e) => {
+                                                        const newName = e.target.value;
+                                                        setState(prev => ({
+                                                            ...prev,
+                                                            teamNames: {
+                                                                ...prev.teamNames,
+                                                                [team]: newName
+                                                            }
+                                                        }));
+                                                    },
+                                                    onKeyDown: (e) => handleKeyDown(e, team),
+                                                    onBlur: (e) => handleTeamNameChange(team, e.target.value),
+                                                    className: 'w-full h-10 px-3 bg-gray-800 border border-blue-500 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                                })
+                                                : state.teamNames[team]
+                                        ),
+                                        ...Array.from({ length: state.setCount }).map((_, i) => [
+                                            React.createElement('td', {
+                                                key: `score-${i}`,
+                                                className: `score-cell relative font-bold text-2xl text-white w-16 text-center border-l border-gray-700 ${i === state.currentSet ? 'current' : ''}`
+                                            }, state.scores[team][i]),
+                                            React.createElement('td', {
+                                                key: `control-${i}`,
+                                                className: 'w-8 bg-gray-800 bg-opacity-50 p-0'
+                                            },
+                                                i === state.currentSet && React.createElement('div', {
+                                                    className: 'flex flex-col h-full'
+                                                }, [
+                                                    React.createElement('button', {
+                                                        key: 'plus',
+                                                        onClick: () => handleScore(team, i, true),
+                                                        className: 'h-8 w-8 flex items-center justify-center text-white bg-green-600 hover:bg-green-500 transition-colors'
+                                                    }, '+'),
+                                                    React.createElement('button', {
+                                                        key: 'minus',
+                                                        onClick: () => handleScore(team, i, false),
+                                                        className: 'h-8 w-8 flex items-center justify-center text-white bg-red-600 hover:bg-red-500 transition-colors'
+                                                    }, '-')
+                                                ])
+                                            )
+                                        ]).flat()
+                                    ])
+                                ),
+                                React.createElement('tr', {
+                                    key: 'controls',
+                                    className: 'h-6 bg-gray-800 bg-opacity-50'
+                                },
+                                    React.createElement('td', {
+                                        colSpan: 7,
+                                        className: 'text-center'
+                                    },
+                                        React.createElement('div', {
+                                            className: 'flex justify-center gap-2 py-1'
+                                        }, [
+                                            React.createElement('button', {
+                                                key: 'add',
+                                                onClick: addSet,
+                                                disabled: state.setCount >= 3,
+                                                className: 'w-6 h-6 flex items-center justify-center bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:opacity-50 text-white rounded-full text-sm transition-colors'
+                                            }, '+'),
+                                            React.createElement('button', {
+                                                key: 'remove',
+                                                onClick: removeSet,
+                                                disabled: state.setCount <= 1,
+                                                className: 'w-6 h-6 flex items-center justify-center bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:opacity-50 text-white rounded-full text-sm transition-colors'
+                                            }, '-')
+                                        ])
                                     )
-                                ])
-                            )
-                        ])
-                    )
+                                )
+                            ])
+                        )
+                    ])
                 ])
             ]);
         };
 
-        // React 앱을 루트 요소에 렌더링
         ReactDOM.render(
             React.createElement(Scoreboard),
             document.getElementById('root')
