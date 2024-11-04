@@ -5,71 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Streaming Scoreboard Display</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Jua&family=Nanum+Gothic:wght@400;700&family=Noto+Sans+KR:wght@100;300;400;500;700;900&family=Nanum+Myeongjo:wght@400;700;800&family=Poor+Story&family=Single+Day&family=Sunflower:wght@300;500;700&family=Stylish&display=swap');
         
         body {
-    margin: 0;
-    padding: 0;
-    background-color: rgba(0, 0, 0, 0) !important;
-    background: transparent !important;
-    font-family: 'Noto Sans KR', sans-serif;
-    overflow: hidden;
-    width: 100vw;
-    height: 100vh;
-    touch-action: none;
-    -webkit-background-color: rgba(0, 0, 0, 0) !important;
-}
+            margin: 0;
+            padding: 0;
+            background-color: rgba(0, 0, 0, 0) !important;
+            background: transparent !important;
+            font-family: 'Noto Sans KR', sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            touch-action: none;
+            -webkit-background-color: rgba(0, 0, 0, 0) !important;
+        }
 
         .scoreboard {
-            background: rgba(30, 64, 175, 0.95);
             border-radius: 8px;
             padding: 4px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
             display: inline-block;
             transform-origin: top left;
-            touch-action: none;
+            transition: transform 0.3s ease;
         }
 
         table {
             border-collapse: collapse;
-            background: rgba(30, 64, 175, 0.95);
-            border-radius: 8px;
             overflow: hidden;
         }
 
         td {
             padding: 10px 20px;
             text-align: center;
-            color: white;
-            border: 1px solid rgba(30, 58, 138, 0.5);
-            background: rgba(30, 64, 175, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .team-name {
-            background: rgba(30, 64, 175, 0.95);
-            font-size: 18px;
-            font-weight: 500;
             min-width: 150px;
-            text-align: center;
-            color: white;
         }
 
         .score {
-            background: rgba(37, 99, 235, 0.95);
-            font-size: 24px;
-            font-weight: bold;
             min-width: 60px;
-            text-align: center;
-            color: white;
             transition: all 0.3s ease;
-        }
-
-        .score.current {
-            background: rgba(59, 130, 246, 0.95);
         }
 
         .score.hidden {
             display: none;
+            width: 0;
+            padding: 0;
+            border: none;
         }
 
         .drag-handle {
@@ -83,7 +66,6 @@
             opacity: 0;
             transition: opacity 0.2s;
             border-radius: 4px;
-            touch-action: none;
         }
 
         .resize-handle {
@@ -97,63 +79,35 @@
             opacity: 0;
             transition: opacity 0.2s;
             border-radius: 50%;
-            touch-action: none;
         }
 
         .scoreboard-container {
-            background: transparent;
             position: absolute;
-            touch-action: none;
+            background: transparent;
         }
 
         .scoreboard-container:hover .drag-handle,
         .scoreboard-container:hover .resize-handle {
             opacity: 1;
         }
-
-        html, body {
-            background: none !important;
-        }
-
-        /* 추가된 스타일 - 깔끔한 테두리와 그림자 */
-        .scoreboard {
-            background: rgba(30, 64, 175, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 
-                       0 0 15px rgba(59, 130, 246, 0.3);
-        }
-
-        .team-name {
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-        }
-
-        .score {
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .score.current {
-            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.1);
-        }
     </style>
 </head>
 <body>
-    <!-- HTML 부분은 이전과 동일 -->
-    <div class="scoreboard-container">
+    <div class="scoreboard-container" style="position: absolute; left: 50px; top: 50px;">
         <div class="drag-handle"></div>
         <div class="scoreboard">
             <table>
                 <tr id="team1-row">
                     <td class="team-name">팀 1</td>
-                    <td class="score" data-set="1">0</td>
+                    <td class="score" data-set="0">0</td>
+                    <td class="score hidden" data-set="1">0</td>
                     <td class="score hidden" data-set="2">0</td>
-                    <td class="score hidden" data-set="3">0</td>
                 </tr>
                 <tr id="team2-row">
                     <td class="team-name">팀 2</td>
-                    <td class="score" data-set="1">0</td>
+                    <td class="score" data-set="0">0</td>
+                    <td class="score hidden" data-set="1">0</td>
                     <td class="score hidden" data-set="2">0</td>
-                    <td class="score hidden" data-set="3">0</td>
                 </tr>
             </table>
         </div>
@@ -161,7 +115,6 @@
     </div>
 
     <script>
-        // 이전 스크립트 코드 모두 유지
         const container = document.querySelector('.scoreboard-container');
         const scoreboard = document.querySelector('.scoreboard');
         const dragHandle = document.querySelector('.drag-handle');
@@ -173,26 +126,83 @@
         let currentY;
         let initialX;
         let initialY;
-        let initialWidth;
-        let initialHeight;
 
-        // 저장된 위치와 크기 불러오기
         let xOffset = parseInt(localStorage.getItem('scoreboardX')) || 50;
         let yOffset = parseInt(localStorage.getItem('scoreboardY')) || 50;
         let scale = parseFloat(localStorage.getItem('scoreboardScale')) || 1;
 
-        // 초기 위치와 크기 설정
-        setTranslate(xOffset, yOffset, container);
-        setScale(scale);
+        function loadSettings() {
+            const settings = JSON.parse(localStorage.getItem('scoreboardSettings')) || {
+                tableBgColor: '#1e40af',
+                teamNameBgColor: '#1e40af',
+                scoreBgColor: '#2563eb',
+                currentSetColor: '#3b82f6',
+                textColor: '#ffffff',
+                fontFamily: "'Noto Sans KR'",
+                fontWeight: '400',
+                fontStyle: 'normal',
+                teamNameSize: 18,
+                scoreSize: 24,
+                borderRadius: 8,
+                opacity: 95,
+                shadowIntensity: 4
+            };
 
-        // 드래그 이벤트
+            const table = document.querySelector('table');
+            const opacity = settings.opacity / 100;
+            const opacityHex = Math.round(opacity * 255).toString(16).padStart(2, '0');
+
+            // 테이블 스타일
+            table.style.background = `${settings.tableBgColor}${opacityHex}`;
+            table.style.borderRadius = `${settings.borderRadius}px`;
+            table.style.boxShadow = `0 ${settings.shadowIntensity}px ${settings.shadowIntensity * 1.5}px rgba(0,0,0,0.2)`;
+            table.style.fontFamily = `${settings.fontFamily}, sans-serif`;
+
+            // 팀 이름 스타일
+            document.querySelectorAll('.team-name').forEach(cell => {
+                cell.style.background = `${settings.teamNameBgColor}${opacityHex}`;
+                cell.style.color = settings.textColor;
+                cell.style.fontSize = `${settings.teamNameSize}px`;
+                cell.style.fontWeight = settings.fontWeight;
+                cell.style.fontStyle = settings.fontStyle;
+            });
+
+            // 점수 스타일 - 같은 세트는 같은 배경색
+            const team1Scores = Array.from(document.querySelectorAll('#team1-row .score:not(.hidden)'));
+            const team2Scores = Array.from(document.querySelectorAll('#team2-row .score:not(.hidden)'));
+            const currentSetIndex = team1Scores.length - 1;
+
+            for (let i = 0; i < team1Scores.length; i++) {
+                const isCurrentSet = i === currentSetIndex;
+                const backgroundColor = isCurrentSet ? settings.currentSetColor : settings.scoreBgColor;
+                
+                [team1Scores[i], team2Scores[i]].forEach(cell => {
+                    cell.style.background = `${backgroundColor}${opacityHex}`;
+                    cell.style.color = settings.textColor;
+                    cell.style.fontSize = `${settings.scoreSize}px`;
+                    cell.style.fontWeight = settings.fontWeight;
+                    cell.style.fontStyle = settings.fontStyle;
+                });
+            }
+        }
+
+        function setTranslate(xPos, yPos, el) {
+            el.style.left = xPos + "px";
+            el.style.top = yPos + "px";
+            localStorage.setItem('scoreboardX', xPos);
+            localStorage.setItem('scoreboardY', yPos);
+        }
+
+        function setScale(newScale) {
+            scale = newScale;
+            scoreboard.style.transform = `scale(${scale})`;
+            localStorage.setItem('scoreboardScale', scale);
+        }
+
         dragHandle.addEventListener('mousedown', dragStart);
         dragHandle.addEventListener('touchstart', dragStart);
-
-        // 리사이즈 이벤트
         resizeHandle.addEventListener('mousedown', resizeStart);
         resizeHandle.addEventListener('touchstart', resizeStart);
-
         document.addEventListener('mousemove', move);
         document.addEventListener('touchmove', move);
         document.addEventListener('mouseup', end);
@@ -262,20 +272,6 @@
             isResizing = false;
         }
 
-        function setTranslate(xPos, yPos, el) {
-            el.style.left = xPos + "px";
-            el.style.top = yPos + "px";
-            localStorage.setItem('scoreboardX', xPos);
-            localStorage.setItem('scoreboardY', yPos);
-        }
-
-        function setScale(newScale) {
-            scale = newScale;
-            scoreboard.style.transform = `scale(${scale})`;
-            localStorage.setItem('scoreboardScale', scale);
-        }
-
-        // 구글 시트 데이터 가져오기
         const SHEET_ID = '1wlPWiFQaIS39ZjgGTU9FomJBOw7q-6hQCK03G9mMdYk';
         const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
         
@@ -309,27 +305,40 @@
                     teamNames[0].textContent = currentData.team1.name;
                     teamNames[1].textContent = currentData.team2.name;
 
-                    team1Scores.forEach(score => score.classList.add('hidden'));
-                    team2Scores.forEach(score => score.classList.add('hidden'));
+                    // 모든 세트 숨기기
+                    team1Scores.forEach(score => {
+                        score.classList.add('hidden');
+                        score.textContent = '0';
+                    });
+                    team2Scores.forEach(score => {
+                        score.classList.add('hidden');
+                        score.textContent = '0';
+                    });
 
+                    // 현재 세트까지만 표시
                     for (let i = 0; i < currentData.currentSet; i++) {
-                        team1Scores[i].classList.remove('hidden');
-                        team2Scores[i].classList.remove('hidden');
-                        team1Scores[i].textContent = currentData.team1.scores[i] || '0';
-                        team2Scores[i].textContent = currentData.team2.scores[i] || '0';
-                        
-                        team1Scores[i].classList.toggle('current', i === currentData.currentSet - 1);
-                        team2Scores[i].classList.toggle('current', i === currentData.currentSet - 1);
+                        if (i < 3) {  // 최대 3세트까지만
+                            team1Scores[i].classList.remove('hidden');
+                            team2Scores[i].classList.remove('hidden');
+                            team1Scores[i].textContent = currentData.team1.scores[i] || '0';
+                            team2Scores[i].textContent = currentData.team2.scores[i] || '0';
+                        }
                     }
 
-                    lastData = currentData;
+                    lastData = {...currentData};
+                    loadSettings();
                 }
             } catch (error) {
                 console.error('Error fetching scoreboard data:', error);
             }
         }
 
+        // 초기 설정 및 업데이트
+        setTranslate(xOffset, yOffset, container);
+        setScale(scale);
+        loadSettings();
         setInterval(updateScoreboard, 1000);
+        setInterval(loadSettings, 1000);
         updateScoreboard();
     </script>
 </body>
