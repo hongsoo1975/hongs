@@ -7,17 +7,39 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Jua&family=Nanum+Gothic:wght@400;700&family=Noto+Sans+KR:wght@100;300;400;500;700;900&family=Nanum+Myeongjo:wght@400;700;800&family=Poor+Story&family=Single+Day&family=Sunflower:wght@300;500;700&family=Stylish&display=swap');
         
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: transparent;
+        }
+
+        html {
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0) !important;
+            -webkit-background-color: rgba(0, 0, 0, 0) !important;
+        }
+
         body {
+            width: 100vw;
+            height: 100vh;
             margin: 0;
             padding: 0;
             background-color: rgba(0, 0, 0, 0) !important;
+            -webkit-background-color: rgba(0, 0, 0, 0) !important;
             background: transparent !important;
             font-family: 'Noto Sans KR', sans-serif;
             overflow: hidden;
-            width: 100vw;
-            height: 100vh;
             touch-action: none;
-            -webkit-background-color: rgba(0, 0, 0, 0) !important;
+        }
+
+        .scoreboard-container {
+            position: absolute;
+            background-color: transparent !important;
+            z-index: 1;
+            left: 50px;
+            top: 50px;
         }
 
         .scoreboard {
@@ -25,34 +47,46 @@
             padding: 4px;
             display: inline-block;
             transform-origin: top left;
-            transition: transform 0.3s ease;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+            transform: scale(1);
+            background-color: transparent !important;
         }
 
         table {
             border-collapse: collapse;
+            border-radius: 8px;
             overflow: hidden;
+            position: relative;
+            background-color: transparent !important;
         }
 
         td {
             padding: 10px 20px;
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            position: relative;
         }
 
         .team-name {
             min-width: 150px;
+            font-size: 18px;
+            border-right: 1px solid #1e3a8a;
         }
 
         .score {
             min-width: 60px;
+            font-size: 24px;
             transition: all 0.3s ease;
         }
 
         .score.hidden {
             display: none;
-            width: 0;
-            padding: 0;
-            border: none;
+        }
+
+        #team1-row td {
+            border-bottom: 1px solid #1e3a8a;
         }
 
         .drag-handle {
@@ -66,6 +100,7 @@
             opacity: 0;
             transition: opacity 0.2s;
             border-radius: 4px;
+            z-index: 1000;
         }
 
         .resize-handle {
@@ -79,11 +114,7 @@
             opacity: 0;
             transition: opacity 0.2s;
             border-radius: 50%;
-        }
-
-        .scoreboard-container {
-            position: absolute;
-            background: transparent;
+            z-index: 1000;
         }
 
         .scoreboard-container:hover .drag-handle,
@@ -93,7 +124,7 @@
     </style>
 </head>
 <body>
-    <div class="scoreboard-container" style="position: absolute; left: 50px; top: 50px;">
+    <div class="scoreboard-container">
         <div class="drag-handle"></div>
         <div class="scoreboard">
             <table>
@@ -115,6 +146,26 @@
     </div>
 
     <script>
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyE6GclpAaUglhWormPb2TQH0UfjlaHxHfBsXjt5B7fpl02nEQNkshtHPwVhtJVlR00/exec';
+
+        let settings = {
+            tableBgColor: '#1e40af',
+            teamNameBgColor: '#1e40af',
+            scoreBgColor: '#2563eb',
+            currentSetColor: '#3b82f6',
+            textColor: '#ffffff',
+            borderColor: '#1e3a8a',
+            borderWidth: 1,
+            fontFamily: 'Noto Sans KR',
+            fontWeight: '400',
+            fontStyle: 'normal',
+            teamNameSize: 18,
+            scoreSize: 24,
+            borderRadius: 8,
+            opacity: 95,
+            shadowIntensity: 4
+        };
+
         const container = document.querySelector('.scoreboard-container');
         const scoreboard = document.querySelector('.scoreboard');
         const dragHandle = document.querySelector('.drag-handle');
@@ -126,87 +177,9 @@
         let currentY;
         let initialX;
         let initialY;
-
-        let xOffset = parseInt(localStorage.getItem('scoreboardX')) || 50;
-        let yOffset = parseInt(localStorage.getItem('scoreboardY')) || 50;
-        let scale = parseFloat(localStorage.getItem('scoreboardScale')) || 1;
-
-        function loadSettings() {
-            const settings = JSON.parse(localStorage.getItem('scoreboardSettings')) || {
-                tableBgColor: '#1e40af',
-                teamNameBgColor: '#1e40af',
-                scoreBgColor: '#2563eb',
-                currentSetColor: '#3b82f6',
-                textColor: '#ffffff',
-                fontFamily: "'Noto Sans KR'",
-                fontWeight: '400',
-                fontStyle: 'normal',
-                teamNameSize: 18,
-                scoreSize: 24,
-                borderRadius: 8,
-                opacity: 95,
-                shadowIntensity: 4
-            };
-
-            const table = document.querySelector('table');
-            const opacity = settings.opacity / 100;
-            const opacityHex = Math.round(opacity * 255).toString(16).padStart(2, '0');
-
-            // 테이블 스타일
-            table.style.background = `${settings.tableBgColor}${opacityHex}`;
-            table.style.borderRadius = `${settings.borderRadius}px`;
-            table.style.boxShadow = `0 ${settings.shadowIntensity}px ${settings.shadowIntensity * 1.5}px rgba(0,0,0,0.2)`;
-            table.style.fontFamily = `${settings.fontFamily}, sans-serif`;
-
-            // 팀 이름 스타일
-            document.querySelectorAll('.team-name').forEach(cell => {
-                cell.style.background = `${settings.teamNameBgColor}${opacityHex}`;
-                cell.style.color = settings.textColor;
-                cell.style.fontSize = `${settings.teamNameSize}px`;
-                cell.style.fontWeight = settings.fontWeight;
-                cell.style.fontStyle = settings.fontStyle;
-            });
-
-            // 점수 스타일 - 같은 세트는 같은 배경색
-            const team1Scores = Array.from(document.querySelectorAll('#team1-row .score:not(.hidden)'));
-            const team2Scores = Array.from(document.querySelectorAll('#team2-row .score:not(.hidden)'));
-            const currentSetIndex = team1Scores.length - 1;
-
-            for (let i = 0; i < team1Scores.length; i++) {
-                const isCurrentSet = i === currentSetIndex;
-                const backgroundColor = isCurrentSet ? settings.currentSetColor : settings.scoreBgColor;
-                
-                [team1Scores[i], team2Scores[i]].forEach(cell => {
-                    cell.style.background = `${backgroundColor}${opacityHex}`;
-                    cell.style.color = settings.textColor;
-                    cell.style.fontSize = `${settings.scoreSize}px`;
-                    cell.style.fontWeight = settings.fontWeight;
-                    cell.style.fontStyle = settings.fontStyle;
-                });
-            }
-        }
-
-        function setTranslate(xPos, yPos, el) {
-            el.style.left = xPos + "px";
-            el.style.top = yPos + "px";
-            localStorage.setItem('scoreboardX', xPos);
-            localStorage.setItem('scoreboardY', yPos);
-        }
-
-        function setScale(newScale) {
-            scale = newScale;
-            scoreboard.style.transform = `scale(${scale})`;
-            localStorage.setItem('scoreboardScale', scale);
-        }
-
-        dragHandle.addEventListener('mousedown', dragStart);
-        dragHandle.addEventListener('touchstart', dragStart);
-        resizeHandle.addEventListener('mousedown', resizeStart);
-        resizeHandle.addEventListener('touchstart', resizeStart);
-        document.addEventListener('mousemove', move);
-        document.addEventListener('touchmove', move);
-        document.addEventListener('mouseup', end);
-        document.addEventListener('touchend', end);
+        let xOffset = 50;
+        let yOffset = 50;
+        let scale = 1;
 
         function dragStart(e) {
             if (e.type === 'touchstart') {
@@ -216,23 +189,21 @@
                 initialX = e.clientX - xOffset;
                 initialY = e.clientY - yOffset;
             }
-
+            
             if (e.target === dragHandle) {
                 isDragging = true;
             }
         }
 
         function resizeStart(e) {
-            if (e.type === 'touchstart') {
-                initialX = e.touches[0].clientX;
-                initialY = e.touches[0].clientY;
-            } else {
-                initialX = e.clientX;
-                initialY = e.clientY;
+            if (e.target === resizeHandle) {
+                isResizing = true;
+                if (e.type === 'touchstart') {
+                    initialX = e.touches[0].clientX;
+                } else {
+                    initialX = e.clientX;
+                }
             }
-
-            initialWidth = scale;
-            isResizing = true;
         }
 
         function move(e) {
@@ -249,7 +220,8 @@
 
                 xOffset = currentX;
                 yOffset = currentY;
-                setTranslate(currentX, currentY, container);
+                container.style.left = `${currentX}px`;
+                container.style.top = `${currentY}px`;
             }
 
             if (isResizing) {
@@ -257,13 +229,14 @@
                 
                 let currentWidth;
                 if (e.type === 'touchmove') {
-                    currentWidth = initialWidth + (e.touches[0].clientX - initialX) * 0.005;
+                    currentWidth = scale + (e.touches[0].clientX - initialX) * 0.005;
                 } else {
-                    currentWidth = initialWidth + (e.clientX - initialX) * 0.005;
+                    currentWidth = scale + (e.clientX - initialX) * 0.005;
                 }
 
                 currentWidth = Math.max(0.5, Math.min(2, currentWidth));
-                setScale(currentWidth);
+                scoreboard.style.transform = `scale(${currentWidth})`;
+                scale = currentWidth;
             }
         }
 
@@ -272,74 +245,138 @@
             isResizing = false;
         }
 
-        const SHEET_ID = '1wlPWiFQaIS39ZjgGTU9FomJBOw7q-6hQCK03G9mMdYk';
-        const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
-        
-        let lastData = null;
+        dragHandle.addEventListener('mousedown', dragStart);
+        dragHandle.addEventListener('touchstart', dragStart);
+        resizeHandle.addEventListener('mousedown', resizeStart);
+        resizeHandle.addEventListener('touchstart', resizeStart);
+        document.addEventListener('mousemove', move);
+        document.addEventListener('touchmove', move);
+        document.addEventListener('mouseup', end);
+        document.addEventListener('touchend', end);
 
-        async function updateScoreboard() {
-            try {
-                const response = await fetch(`${SHEET_URL}&_=${Date.now()}`);
-                const text = await response.text();
-                const rows = text.split('\n').map(row => 
-                    row.split(',').map(cell => cell.replace(/"/g, '').trim())
-                );
+        function applyStyles() {
+            const table = document.querySelector('table');
+            const teamNames = document.querySelectorAll('.team-name');
+            const scores = document.querySelectorAll('.score');
+            const firstRow = document.querySelector('#team1-row');
+            const opacity = settings.opacity / 100;
 
-                const currentData = {
-                    currentSet: parseInt(rows[1][1]) || 1,
-                    team1: {
-                        name: rows[1][0],
-                        scores: [rows[1][2], rows[1][3], rows[1][4]]
-                    },
-                    team2: {
-                        name: rows[2][0],
-                        scores: [rows[2][2], rows[2][3], rows[2][4]]
-                    }
-                };
-
-                if (!lastData || JSON.stringify(lastData) !== JSON.stringify(currentData)) {
-                    const teamNames = document.querySelectorAll('.team-name');
-                    const team1Scores = document.querySelectorAll('#team1-row .score');
-                    const team2Scores = document.querySelectorAll('#team2-row .score');
-
-                    teamNames[0].textContent = currentData.team1.name;
-                    teamNames[1].textContent = currentData.team2.name;
-
-                    // 모든 세트 숨기기
-                    team1Scores.forEach(score => {
-                        score.classList.add('hidden');
-                        score.textContent = '0';
-                    });
-                    team2Scores.forEach(score => {
-                        score.classList.add('hidden');
-                        score.textContent = '0';
-                    });
-
-                    // 현재 세트까지만 표시
-                    for (let i = 0; i < currentData.currentSet; i++) {
-                        if (i < 3) {  // 최대 3세트까지만
-                            team1Scores[i].classList.remove('hidden');
-                            team2Scores[i].classList.remove('hidden');
-                            team1Scores[i].textContent = currentData.team1.scores[i] || '0';
-                            team2Scores[i].textContent = currentData.team2.scores[i] || '0';
-                        }
-                    }
-
-                    lastData = {...currentData};
-                    loadSettings();
-                }
-            } catch (error) {
-                console.error('Error fetching scoreboard data:', error);
+            function hexToRgba(hex, alpha) {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
             }
+
+            requestAnimationFrame(() => {
+                table.style.background = 'transparent';
+                table.style.borderRadius = `${settings.borderRadius}px`;
+                table.style.boxShadow = `0 ${settings.shadowIntensity}px ${settings.shadowIntensity * 1.5}px rgba(0,0,0,0.2)`;
+                table.style.border = `${settings.borderWidth}px solid ${hexToRgba(settings.borderColor, opacity)}`;
+                table.style.fontFamily = `${settings.fontFamily}, sans-serif`;
+
+                const cells = firstRow.querySelectorAll('td');
+                cells.forEach(cell => {
+                    cell.style.borderBottom = `${settings.borderWidth}px solid ${hexToRgba(settings.borderColor, opacity)}`;
+                });
+
+                teamNames.forEach(cell => {
+                    cell.style.background = hexToRgba(settings.teamNameBgColor, opacity);
+                    cell.style.color = settings.textColor;
+                    cell.style.fontSize = `${settings.teamNameSize}px`;
+                    cell.style.fontWeight = settings.fontWeight;
+                    cell.style.fontStyle = settings.fontStyle;
+                    cell.style.borderRight = `${settings.borderWidth}px solid ${hexToRgba(settings.borderColor, opacity)}`;
+                });
+
+                scores.forEach(cell => {
+                    if (!cell.classList.contains('hidden')) {
+                        const isCurrentSet = parseInt(cell.dataset.set) === currentSet - 1;
+                        cell.style.background = hexToRgba(isCurrentSet ? settings.currentSetColor : settings.scoreBgColor, opacity);
+                        cell.style.color = settings.textColor;
+                        cell.style.fontSize = `${settings.scoreSize}px`;
+                        cell.style.fontWeight = settings.fontWeight;
+                        cell.style.fontStyle = settings.fontStyle;
+                    }
+                });
+            });
         }
 
-        // 초기 설정 및 업데이트
-        setTranslate(xOffset, yOffset, container);
-        setScale(scale);
-        loadSettings();
-        setInterval(updateScoreboard, 1000);
-        setInterval(loadSettings, 1000);
-        updateScoreboard();
+        let currentSet = 1;
+
+        function loadSettingsAndData() {
+            fetch(APPS_SCRIPT_URL)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        const rows = result.data;
+                        
+                        const teamNames = document.querySelectorAll('.team-name');
+                        const team1Scores = document.querySelectorAll('#team1-row .score');
+                        const team2Scores = document.querySelectorAll('#team2-row .score');
+
+                        teamNames[0].textContent = rows[1][0] || '팀 1';
+                        teamNames[1].textContent = rows[2][0] || '팀 2';
+
+                        currentSet = parseInt(rows[1][1]) || 1;
+
+                        team1Scores.forEach(score => score.classList.add('hidden'));
+                        team2Scores.forEach(score => score.classList.add('hidden'));
+
+                        for (let i = 0; i < currentSet && i < 3; i++) {
+                            team1Scores[i].classList.remove('hidden');
+                            team2Scores[i].classList.remove('hidden');
+                            team1Scores[i].textContent = rows[1][i + 2] || '0';
+                            team2Scores[i].textContent = rows[2][i + 2] || '0';
+                        }
+
+                        try {
+                            const settingsJson = rows[1][5];
+                            if (settingsJson) {
+                                const sheetSettings = JSON.parse(settingsJson);
+                                
+                                if (sheetSettings.colors) {
+                                    settings.tableBgColor = sheetSettings.colors.tableBg;
+                                    settings.teamNameBgColor = sheetSettings.colors.teamNameBg;
+                                    settings.scoreBgColor = sheetSettings.colors.scoreBg;
+                                    settings.currentSetColor = sheetSettings.colors.currentSetHighlight;
+                                    settings.textColor = sheetSettings.colors.textColor;
+                                    settings.borderColor = sheetSettings.colors.borderColor;
+                                }
+
+                                if (sheetSettings.font) {
+                                    settings.fontFamily = sheetSettings.font.family?.replace(/'/g, '') || settings.fontFamily;
+                                    settings.fontWeight = sheetSettings.font.weight || settings.fontWeight;
+                                    settings.fontStyle = sheetSettings.font.italic ? 'italic' : 'normal';
+                                    settings.teamNameSize = sheetSettings.font.teamNameSize || settings.teamNameSize;
+                                    settings.scoreSize = sheetSettings.font.scoreSize || settings.scoreSize;
+                                }
+
+                                if (sheetSettings.style) {
+                                    settings.borderRadius = typeof sheetSettings.style.borderRadius === 'number' ? 
+                                        sheetSettings.style.borderRadius : settings.borderRadius;
+                                    settings.opacity = typeof sheetSettings.style.opacity === 'number' ? 
+                                        sheetSettings.style.opacity : settings.opacity;
+                                    settings.shadowIntensity = typeof sheetSettings.style.shadowIntensity === 'number' ? 
+                                        sheetSettings.style.shadowIntensity : settings.shadowIntensity;
+                                }
+
+                                if (typeof sheetSettings.borderWidth === 'number') {
+                                    settings.borderWidth = sheetSettings.borderWidth;
+                                }
+                            }
+                        } catch (parseError) {
+                            console.error('설정값 파싱 오류:', parseError);
+                        }
+
+                        applyStyles();
+                    }
+                })
+                .catch(error => console.error('데이터 로딩 오류:', error));
+        }
+
+        setInterval(loadSettingsAndData, 2000);
+        loadSettingsAndData();
     </script>
 </body>
 </html>
