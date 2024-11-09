@@ -73,10 +73,6 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'lowerThirdSettings';
-        let currentSettings = null;
-
-        // 기본 설정
         const defaultSettings = {
             title: '제목',
             subtitle: '부제목',
@@ -91,34 +87,6 @@
             leftPosition: '50',
             bottomPosition: '50'
         };
-
-        // URL 파라미터 파싱
-        function parseUrlParams() {
-            const params = {};
-            const searchParams = new URLSearchParams(window.location.search);
-            
-            for (const [key, value] of searchParams.entries()) {
-                if (key.includes('Color')) {
-                    params[key] = '#' + value;
-                } else {
-                    params[key] = decodeURIComponent(value);
-                }
-            }
-            
-            return params;
-        }
-
-        function getSettings() {
-            const urlSettings = parseUrlParams();
-            if (Object.keys(urlSettings).length > 0) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(urlSettings));
-                currentSettings = urlSettings;
-            } else {
-                const storedSettings = localStorage.getItem(STORAGE_KEY);
-                currentSettings = storedSettings ? JSON.parse(storedSettings) : defaultSettings;
-            }
-            return currentSettings;
-        }
 
         function applySettings(settings) {
             const lowerThird = document.getElementById('lower-third');
@@ -151,19 +119,32 @@
             subtitleText.textContent = settings.subtitle;
 
             lowerThird.classList.add('visible');
+
+            // 세션 스토리지에 현재 설정 저장
+            sessionStorage.setItem('lastSettings', JSON.stringify(settings));
         }
 
-        function initAndUpdate() {
-            const settings = getSettings();
-            applySettings(settings);
+        // 초기 설정 및 업데이트
+        function init() {
+            // 세션 스토리지에서 마지막 설정 불러오기
+            const lastSettings = sessionStorage.getItem('lastSettings');
+            if (lastSettings) {
+                applySettings(JSON.parse(lastSettings));
+            } else {
+                applySettings(defaultSettings);
+            }
         }
 
-        // 초기 로드 및 주기적 업데이트
-        window.onload = function() {
-            initAndUpdate();
-            // 5초마다 설정 체크 및 업데이트
-            setInterval(initAndUpdate, 5000);
-        };
+        // 메시지 수신 처리
+        window.addEventListener('message', (event) => {
+            const settings = event.data;
+            if (settings && typeof settings === 'object') {
+                applySettings(settings);
+            }
+        });
+
+        // 페이지 로드 시 초기화
+        window.onload = init;
     </script>
 </body>
 </html>
