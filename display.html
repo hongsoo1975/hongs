@@ -4,7 +4,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
-    <title>Lower Third Display</title>
     <style>
         body {
             margin: 0;
@@ -13,12 +12,10 @@
             height: 100vh;
             background: transparent !important;
             overflow: hidden;
-            -webkit-user-select: none;
-            user-select: none;
             pointer-events: none;
         }
         
-        #lowerThird {
+        #lower-third {
             position: fixed;
             min-width: 200px;
             opacity: 0;
@@ -26,75 +23,128 @@
             pointer-events: none;
         }
         
-        #lowerThird.visible {
+        #lower-third.visible {
             opacity: 1;
         }
         
-        .title-row, .subtitle-row {
+        .title-container, .subtitle-container {
+            position: relative;
             width: 100%;
-            padding: 10px;
-            box-sizing: border-box;
-            text-align: center;
-            position: relative;
-        }
-        
-        .title-text, .subtitle-text {
             margin: 0;
-            padding: 5px;
-            word-break: keep-all;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            position: relative;
-            z-index: 2;
-            pointer-events: none;
         }
         
-        .title-background, .subtitle-background {
+        .background {
             position: absolute;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
+            width: 100%;
+            height: 100%;
             z-index: 1;
-            pointer-events: none;
+        }
+        
+        .text {
+            position: relative;
+            z-index: 2;
+            margin: 0;
+            padding: 10px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div id="lowerThird">
-        <div class="title-row">
-            <div class="title-background"></div>
-            <h1 class="title-text"></h1>
+    <div id="lower-third">
+        <div class="title-container">
+            <div class="background title-bg"></div>
+            <h1 class="text title-text"></h1>
         </div>
-        <div class="subtitle-row">
-            <div class="subtitle-background"></div>
-            <h2 class="subtitle-text"></h2>
+        <div class="subtitle-container">
+            <div class="background subtitle-bg"></div>
+            <h2 class="text subtitle-text"></h2>
         </div>
     </div>
-    
-    <script>
-        // display.html의 getUrlParams 함수만 수정하세요
 
-function getUrlParams() {
-    const params = new URLSearchParams(window.location.search);
-    const settings = {
-        title: decodeURIComponent(params.get('title') || '제목'),
-        subtitle: decodeURIComponent(params.get('subtitle') || '부제목'),
-        fontFamily: decodeURIComponent(params.get('fontFamily') || 'Noto Sans KR'),
-        fontWeight: params.get('fontWeight') || 'normal',
-        fontStyle: params.get('fontStyle') || 'normal',
-        textColor: '#' + (params.get('textColor') || 'ffffff'),
-        titleBgColor: '#' + (params.get('titleBgColor') || 'ff0000'),
-        subtitleBgColor: '#' + (params.get('subtitleBgColor') || '000000'),
-        cornerRadius: params.get('cornerRadius') || '5',
-        width: params.get('width') || '400',
-        leftPosition: params.get('leftPosition') || '50',
-        bottomPosition: params.get('bottomPosition') || '50'
-    };
-    
-    console.log('받은 설정값:', settings); // 디버깅용
-    return settings;
-}
-</script>
+    <script>
+        function parseUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const params = {};
+            
+            // 필수 파라미터와 기본값 설정
+            const parameters = {
+                title: { default: '제목', decode: true },
+                subtitle: { default: '부제목', decode: true },
+                fontFamily: { default: 'Noto Sans KR', decode: true },
+                fontWeight: { default: 'normal', decode: false },
+                fontStyle: { default: 'normal', decode: false },
+                textColor: { default: '#ffffff', decode: false, prefix: '#' },
+                titleBgColor: { default: '#ff0000', decode: false, prefix: '#' },
+                subtitleBgColor: { default: '#000000', decode: false, prefix: '#' },
+                cornerRadius: { default: '5', decode: false },
+                width: { default: '400', decode: false },
+                leftPosition: { default: '50', decode: false },
+                bottomPosition: { default: '50', decode: false }
+            };
+
+            // 각 파라미터 처리
+            for (const [key, config] of Object.entries(parameters)) {
+                let value = urlParams.get(key);
+                if (value === null) value = config.default;
+                if (config.decode) value = decodeURIComponent(value);
+                if (config.prefix && !value.startsWith('#')) value = config.prefix + value;
+                params[key] = value;
+            }
+            
+            return params;
+        }
+
+        function applySettings(settings) {
+            const lowerThird = document.getElementById('lower-third');
+            const titleBg = document.querySelector('.title-bg');
+            const subtitleBg = document.querySelector('.subtitle-bg');
+            const titleText = document.querySelector('.title-text');
+            const subtitleText = document.querySelector('.subtitle-text');
+
+            // 위치와 크기 설정
+            lowerThird.style.left = `${settings.leftPosition}px`;
+            lowerThird.style.bottom = `${settings.bottomPosition}px`;
+            lowerThird.style.width = `${settings.width}px`;
+
+            // 배경 스타일
+            titleBg.style.backgroundColor = settings.titleBgColor;
+            titleBg.style.borderRadius = `${settings.cornerRadius}px ${settings.cornerRadius}px 0 0`;
+            subtitleBg.style.backgroundColor = settings.subtitleBgColor;
+            subtitleBg.style.borderRadius = `0 0 ${settings.cornerRadius}px ${settings.cornerRadius}px`;
+
+            // 텍스트 스타일
+            const textStyle = {
+                color: settings.textColor,
+                fontFamily: settings.fontFamily,
+                fontWeight: settings.fontWeight,
+                fontStyle: settings.fontStyle
+            };
+
+            Object.assign(titleText.style, textStyle);
+            Object.assign(subtitleText.style, textStyle);
+
+            // 텍스트 내용
+            titleText.textContent = settings.title;
+            subtitleText.textContent = settings.subtitle;
+
+            // 표시
+            lowerThird.classList.add('visible');
+        }
+
+        // 초기 로드 및 주기적 업데이트
+        function init() {
+            const settings = parseUrlParams();
+            applySettings(settings);
+            // 5초마다 설정 업데이트
+            setInterval(() => {
+                const newSettings = parseUrlParams();
+                applySettings(newSettings);
+            }, 5000);
+        }
+
+        window.onload = init;
+    </script>
 </body>
 </html>
