@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
+    <title>Lower Third Display</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            background: transparent !important;
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+            pointer-events: none;
+        }
+        
+        #lowerThird {
+            position: fixed;
+            min-width: 200px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+        
+        #lowerThird.visible {
+            opacity: 1;
+        }
+        
+        .title-row, .subtitle-row {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            text-align: center;
+            position: relative;
+        }
+        
+        .title-text, .subtitle-text {
+            margin: 0;
+            padding: 5px;
+            word-break: keep-all;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: relative;
+            z-index: 2;
+            pointer-events: none;
+        }
+        
+        .title-background, .subtitle-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="lowerThird">
+        <div class="title-row">
+            <div class="title-background"></div>
+            <h1 class="title-text"></h1>
+        </div>
+        <div class="subtitle-row">
+            <div class="subtitle-background"></div>
+            <h2 class="subtitle-text"></h2>
+        </div>
+    </div>
+    
+    <script>
+        // URL에서 파라미터 읽기
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                title: decodeURIComponent(params.get('title') || '제목'),
+                subtitle: decodeURIComponent(params.get('subtitle') || '부제목'),
+                fontFamily: decodeURIComponent(params.get('fontFamily') || 'Noto Sans KR'),
+                fontWeight: params.get('fontWeight') || 'normal',
+                fontStyle: params.get('fontStyle') || 'normal',
+                textColor: params.get('textColor') || '#ffffff',
+                titleBgColor: params.get('titleBgColor') || '#ff0000',
+                subtitleBgColor: params.get('subtitleBgColor') || '#000000',
+                cornerRadius: params.get('cornerRadius') || '5',
+                width: params.get('width') || '400',
+                leftPosition: params.get('leftPosition') || '50',
+                bottomPosition: params.get('bottomPosition') || '50'
+            };
+        }
+
+        function updateDisplay(settings) {
+            const lowerThird = document.getElementById('lowerThird');
+            const titleBg = document.querySelector('.title-background');
+            const subtitleBg = document.querySelector('.subtitle-background');
+            const titleText = document.querySelector('.title-text');
+            const subtitleText = document.querySelector('.subtitle-text');
+            
+            // 위치 설정
+            lowerThird.style.left = `${settings.leftPosition}px`;
+            lowerThird.style.bottom = `${settings.bottomPosition}px`;
+            lowerThird.style.width = `${settings.width}px`;
+            
+            // 배경 설정
+            titleBg.style.backgroundColor = settings.titleBgColor;
+            titleBg.style.borderRadius = `${settings.cornerRadius}px ${settings.cornerRadius}px 0 0`;
+            
+            subtitleBg.style.backgroundColor = settings.subtitleBgColor;
+            subtitleBg.style.borderRadius = `0 0 ${settings.cornerRadius}px ${settings.cornerRadius}px`;
+            
+            // 텍스트 스타일
+            const textStyle = {
+                color: settings.textColor,
+                fontFamily: settings.fontFamily,
+                fontWeight: settings.fontWeight,
+                fontStyle: settings.fontStyle
+            };
+            
+            Object.assign(titleText.style, textStyle);
+            Object.assign(subtitleText.style, textStyle);
+            
+            titleText.textContent = settings.title;
+            subtitleText.textContent = settings.subtitle;
+            
+            lowerThird.classList.add('visible');
+        }
+        
+        // 설정 자동 업데이트
+        function checkForUpdates() {
+            const settings = getUrlParams();
+            updateDisplay(settings);
+        }
+        
+        window.onload = function() {
+            checkForUpdates();
+            // 5초마다 설정 업데이트 체크
+            setInterval(checkForUpdates, 5000);
+        };
+    </script>
+</body>
+</html>
