@@ -73,83 +73,28 @@
     </div>
     
     <script>
-        // URL에서 파라미터 읽기
-        function getUrlParams() {
-            const params = {};
-            const queryString = window.location.search;
-            const urlParams = new URLSearchParams(queryString);
-            
-            // 각 파라미터를 디코딩하여 저장
-            params.title = decodeURIComponent(urlParams.get('title') || '제목');
-            params.subtitle = decodeURIComponent(urlParams.get('subtitle') || '부제목');
-            params.fontFamily = decodeURIComponent(urlParams.get('fontFamily') || 'Noto Sans KR');
-            params.fontWeight = urlParams.get('fontWeight') || 'normal';
-            params.fontStyle = urlParams.get('fontStyle') || 'normal';
-            params.textColor = urlParams.get('textColor') || '#ffffff';
-            params.titleBgColor = urlParams.get('titleBgColor') || '#ff0000';
-            params.subtitleBgColor = urlParams.get('subtitleBgColor') || '#000000';
-            params.cornerRadius = urlParams.get('cornerRadius') || '5';
-            params.width = urlParams.get('width') || '400';
-            params.leftPosition = urlParams.get('leftPosition') || '50';
-            params.bottomPosition = urlParams.get('bottomPosition') || '50';
-            
-            return params;
-        }
+        // display.html의 getUrlParams 함수만 수정하세요
 
-        // 화면 업데이트
-        function updateDisplay(settings) {
-            const lowerThird = document.getElementById('lowerThird');
-            const titleBg = document.querySelector('.title-background');
-            const subtitleBg = document.querySelector('.subtitle-background');
-            const titleText = document.querySelector('.title-text');
-            const subtitleText = document.querySelector('.subtitle-text');
-            
-            // 위치 설정
-            lowerThird.style.left = `${settings.leftPosition}px`;
-            lowerThird.style.bottom = `${settings.bottomPosition}px`;
-            lowerThird.style.width = `${settings.width}px`;
-            
-            // 배경 설정
-            titleBg.style.backgroundColor = settings.titleBgColor;
-            titleBg.style.borderRadius = `${settings.cornerRadius}px ${settings.cornerRadius}px 0 0`;
-            
-            subtitleBg.style.backgroundColor = settings.subtitleBgColor;
-            subtitleBg.style.borderRadius = `0 0 ${settings.cornerRadius}px ${settings.cornerRadius}px`;
-            
-            // 텍스트 스타일
-            titleText.style.color = settings.textColor;
-            titleText.style.fontFamily = settings.fontFamily;
-            titleText.style.fontWeight = settings.fontWeight;
-            titleText.style.fontStyle = settings.fontStyle;
-            
-            subtitleText.style.color = settings.textColor;
-            subtitleText.style.fontFamily = settings.fontFamily;
-            subtitleText.style.fontWeight = settings.fontWeight;
-            subtitleText.style.fontStyle = settings.fontStyle;
-            
-            // 텍스트 내용
-            titleText.textContent = settings.title;
-            subtitleText.textContent = settings.subtitle;
-            
-            // 표시
-            lowerThird.classList.add('visible');
-        }
-        
-        // 주기적으로 설정 업데이트
-        function checkForUpdates() {
-            const settings = getUrlParams();
-            updateDisplay(settings);
-        }
-        
-        // 초기 로드 및 주기적 업데이트 설정
-        window.onload = function() {
-            checkForUpdates();
-            setInterval(checkForUpdates, 5000);
-        };
-
-        // URL 변경 감지
-        window.addEventListener('hashchange', checkForUpdates);
-        window.addEventListener('popstate', checkForUpdates);
-    </script>
+function getUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+    const settings = {
+        title: decodeURIComponent(params.get('title') || '제목'),
+        subtitle: decodeURIComponent(params.get('subtitle') || '부제목'),
+        fontFamily: decodeURIComponent(params.get('fontFamily') || 'Noto Sans KR'),
+        fontWeight: params.get('fontWeight') || 'normal',
+        fontStyle: params.get('fontStyle') || 'normal',
+        textColor: '#' + (params.get('textColor') || 'ffffff'),
+        titleBgColor: '#' + (params.get('titleBgColor') || 'ff0000'),
+        subtitleBgColor: '#' + (params.get('subtitleBgColor') || '000000'),
+        cornerRadius: params.get('cornerRadius') || '5',
+        width: params.get('width') || '400',
+        leftPosition: params.get('leftPosition') || '50',
+        bottomPosition: params.get('bottomPosition') || '50'
+    };
+    
+    console.log('받은 설정값:', settings); // 디버깅용
+    return settings;
+}
+</script>
 </body>
 </html>
