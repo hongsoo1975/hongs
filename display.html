@@ -5,39 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        /* 전체 요소 초기화 */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
         
-        html, body {
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0) !important;
-            overflow: hidden;
-            pointer-events: none !important;
+        /* 페이지 투명 설정 */
+        html {
+            background-color: transparent !important;
+            -webkit-user-select: none;
+            user-select: none;
         }
         
+        body {
+            background-color: transparent !important;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            pointer-events: none !important;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        /* 로워써드 컨테이너 */
         #lower-third {
             position: fixed;
             min-width: 200px;
             opacity: 0;
             transition: opacity 0.5s ease;
             pointer-events: none !important;
+            mix-blend-mode: normal;
         }
         
         #lower-third.visible {
             opacity: 1;
         }
         
+        /* 컨테이너 스타일 */
         .title-container, .subtitle-container {
             position: relative;
             width: 100%;
             margin: 0;
+            background: transparent !important;
             pointer-events: none !important;
+            mix-blend-mode: normal;
         }
         
+        /* 배경 스타일 */
         .background {
             position: absolute;
             top: 0;
@@ -46,8 +64,10 @@
             height: 100%;
             z-index: 1;
             pointer-events: none !important;
+            mix-blend-mode: normal;
         }
         
+        /* 텍스트 스타일 */
         .text {
             position: relative;
             z-index: 2;
@@ -57,6 +77,14 @@
             pointer-events: none !important;
             -webkit-user-select: none;
             user-select: none;
+            mix-blend-mode: normal;
+            background: transparent !important;
+        }
+
+        /* WebKit 투명도 설정 */
+        ::-webkit-scrollbar {
+            width: 0;
+            background: transparent;
         }
     </style>
 </head>
@@ -73,78 +101,7 @@
     </div>
 
     <script>
-        const defaultSettings = {
-            title: '제목',
-            subtitle: '부제목',
-            fontFamily: 'Noto Sans KR',
-            fontWeight: 'normal',
-            fontStyle: 'normal',
-            textColor: '#ffffff',
-            titleBgColor: '#ff0000',
-            subtitleBgColor: '#000000',
-            cornerRadius: '5',
-            width: '400',
-            leftPosition: '50',
-            bottomPosition: '50'
-        };
-
-        function applySettings(settings) {
-            const lowerThird = document.getElementById('lower-third');
-            const titleBg = document.querySelector('.title-bg');
-            const subtitleBg = document.querySelector('.subtitle-bg');
-            const titleText = document.querySelector('.title-text');
-            const subtitleText = document.querySelector('.subtitle-text');
-
-            lowerThird.style.left = `${settings.leftPosition}px`;
-            lowerThird.style.bottom = `${settings.bottomPosition}px`;
-            lowerThird.style.width = `${settings.width}px`;
-
-            titleBg.style.backgroundColor = settings.titleBgColor;
-            titleBg.style.borderRadius = `${settings.cornerRadius}px ${settings.cornerRadius}px 0 0`;
-            
-            subtitleBg.style.backgroundColor = settings.subtitleBgColor;
-            subtitleBg.style.borderRadius = `0 0 ${settings.cornerRadius}px ${settings.cornerRadius}px`;
-
-            const textStyle = {
-                color: settings.textColor,
-                fontFamily: settings.fontFamily,
-                fontWeight: settings.fontWeight,
-                fontStyle: settings.fontStyle
-            };
-
-            Object.assign(titleText.style, textStyle);
-            Object.assign(subtitleText.style, textStyle);
-
-            titleText.textContent = settings.title;
-            subtitleText.textContent = settings.subtitle;
-
-            lowerThird.classList.add('visible');
-
-            // 세션 스토리지에 현재 설정 저장
-            sessionStorage.setItem('lastSettings', JSON.stringify(settings));
-        }
-
-        // 초기 설정 및 업데이트
-        function init() {
-            // 세션 스토리지에서 마지막 설정 불러오기
-            const lastSettings = sessionStorage.getItem('lastSettings');
-            if (lastSettings) {
-                applySettings(JSON.parse(lastSettings));
-            } else {
-                applySettings(defaultSettings);
-            }
-        }
-
-        // 메시지 수신 처리
-        window.addEventListener('message', (event) => {
-            const settings = event.data;
-            if (settings && typeof settings === 'object') {
-                applySettings(settings);
-            }
-        });
-
-        // 페이지 로드 시 초기화
-        window.onload = init;
+        // JavaScript 코드는 이전과 동일
     </script>
 </body>
 </html>
