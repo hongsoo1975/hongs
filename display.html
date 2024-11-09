@@ -5,14 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
             width: 100vw;
             height: 100vh;
-            background: transparent !important;
+            background: rgba(0, 0, 0, 0) !important;
             overflow: hidden;
-            pointer-events: none;
+            pointer-events: none !important;
         }
         
         #lower-third {
@@ -20,7 +24,7 @@
             min-width: 200px;
             opacity: 0;
             transition: opacity 0.5s ease;
-            pointer-events: none;
+            pointer-events: none !important;
         }
         
         #lower-third.visible {
@@ -31,6 +35,7 @@
             position: relative;
             width: 100%;
             margin: 0;
+            pointer-events: none !important;
         }
         
         .background {
@@ -40,6 +45,7 @@
             width: 100%;
             height: 100%;
             z-index: 1;
+            pointer-events: none !important;
         }
         
         .text {
@@ -48,6 +54,9 @@
             margin: 0;
             padding: 10px;
             text-align: center;
+            pointer-events: none !important;
+            -webkit-user-select: none;
+            user-select: none;
         }
     </style>
 </head>
@@ -64,36 +73,51 @@
     </div>
 
     <script>
-        function parseUrlParams() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const params = {};
-            
-            // 필수 파라미터와 기본값 설정
-            const parameters = {
-                title: { default: '제목', decode: true },
-                subtitle: { default: '부제목', decode: true },
-                fontFamily: { default: 'Noto Sans KR', decode: true },
-                fontWeight: { default: 'normal', decode: false },
-                fontStyle: { default: 'normal', decode: false },
-                textColor: { default: '#ffffff', decode: false, prefix: '#' },
-                titleBgColor: { default: '#ff0000', decode: false, prefix: '#' },
-                subtitleBgColor: { default: '#000000', decode: false, prefix: '#' },
-                cornerRadius: { default: '5', decode: false },
-                width: { default: '400', decode: false },
-                leftPosition: { default: '50', decode: false },
-                bottomPosition: { default: '50', decode: false }
-            };
+        const STORAGE_KEY = 'lowerThirdSettings';
+        let currentSettings = null;
 
-            // 각 파라미터 처리
-            for (const [key, config] of Object.entries(parameters)) {
-                let value = urlParams.get(key);
-                if (value === null) value = config.default;
-                if (config.decode) value = decodeURIComponent(value);
-                if (config.prefix && !value.startsWith('#')) value = config.prefix + value;
-                params[key] = value;
+        // 기본 설정
+        const defaultSettings = {
+            title: '제목',
+            subtitle: '부제목',
+            fontFamily: 'Noto Sans KR',
+            fontWeight: 'normal',
+            fontStyle: 'normal',
+            textColor: '#ffffff',
+            titleBgColor: '#ff0000',
+            subtitleBgColor: '#000000',
+            cornerRadius: '5',
+            width: '400',
+            leftPosition: '50',
+            bottomPosition: '50'
+        };
+
+        // URL 파라미터 파싱
+        function parseUrlParams() {
+            const params = {};
+            const searchParams = new URLSearchParams(window.location.search);
+            
+            for (const [key, value] of searchParams.entries()) {
+                if (key.includes('Color')) {
+                    params[key] = '#' + value;
+                } else {
+                    params[key] = decodeURIComponent(value);
+                }
             }
             
             return params;
+        }
+
+        function getSettings() {
+            const urlSettings = parseUrlParams();
+            if (Object.keys(urlSettings).length > 0) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(urlSettings));
+                currentSettings = urlSettings;
+            } else {
+                const storedSettings = localStorage.getItem(STORAGE_KEY);
+                currentSettings = storedSettings ? JSON.parse(storedSettings) : defaultSettings;
+            }
+            return currentSettings;
         }
 
         function applySettings(settings) {
@@ -103,18 +127,16 @@
             const titleText = document.querySelector('.title-text');
             const subtitleText = document.querySelector('.subtitle-text');
 
-            // 위치와 크기 설정
             lowerThird.style.left = `${settings.leftPosition}px`;
             lowerThird.style.bottom = `${settings.bottomPosition}px`;
             lowerThird.style.width = `${settings.width}px`;
 
-            // 배경 스타일
             titleBg.style.backgroundColor = settings.titleBgColor;
             titleBg.style.borderRadius = `${settings.cornerRadius}px ${settings.cornerRadius}px 0 0`;
+            
             subtitleBg.style.backgroundColor = settings.subtitleBgColor;
             subtitleBg.style.borderRadius = `0 0 ${settings.cornerRadius}px ${settings.cornerRadius}px`;
 
-            // 텍스트 스타일
             const textStyle = {
                 color: settings.textColor,
                 fontFamily: settings.fontFamily,
@@ -125,26 +147,23 @@
             Object.assign(titleText.style, textStyle);
             Object.assign(subtitleText.style, textStyle);
 
-            // 텍스트 내용
             titleText.textContent = settings.title;
             subtitleText.textContent = settings.subtitle;
 
-            // 표시
             lowerThird.classList.add('visible');
         }
 
-        // 초기 로드 및 주기적 업데이트
-        function init() {
-            const settings = parseUrlParams();
+        function initAndUpdate() {
+            const settings = getSettings();
             applySettings(settings);
-            // 5초마다 설정 업데이트
-            setInterval(() => {
-                const newSettings = parseUrlParams();
-                applySettings(newSettings);
-            }, 5000);
         }
 
-        window.onload = init;
+        // 초기 로드 및 주기적 업데이트
+        window.onload = function() {
+            initAndUpdate();
+            // 5초마다 설정 체크 및 업데이트
+            setInterval(initAndUpdate, 5000);
+        };
     </script>
 </body>
 </html>
